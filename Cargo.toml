@@ -1,0 +1,21 @@
+[package]
+name = "build-to-hd"
+version = "0.1.0"
+edition = "2024"
+description = "CLI to move heavy build artifacts to a secondary disk and leave symlinks behind"
+license = "MIT"
+repository = "https://github.com/iarley/build-to-hd"
+
+[dependencies]
+# Planned (not added yet):
+# clap = { version = "4", features = ["derive"] }
+# serde = { version = "1", features = ["derive"] }
+# toml = "0.8"
+# anyhow = "1"
+# walkdir = "2"
+# dirs = "5"
+
+[profile.release]
+lto = true
+strip = true
+EOF

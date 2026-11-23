@@ -1,0 +1,5 @@
+/target
+/mnt
+*.rs.bk
+.DS_Store
+EOF

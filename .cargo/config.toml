@@ -1,0 +1,3 @@
+[build]
+target-dir = "/mnt/linux-data/build-to-hd/target"
+EOF

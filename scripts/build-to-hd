@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Move heavy build dirs of a project to the HD and leave symlinks behind.
+# Usage: build-to-hd <project-dir> [rust|node|auto]
+set -euo pipefail
+
+HD=/mnt/linux-data
+[ -d "$HD" ] || { echo "HD not mounted at $HD" >&2; exit 1; }
+
+usage() { echo "Usage: build-to-hd <project-dir> [rust|node|auto]" >&2; exit 1; }
+[ $# -ge 1 ] || usage
+
+project=$(realpath "$1")
+mode=${2:-auto}
+name=$(basename "$project")
+hd="$HD/$name"
+
+do_rust() {
+  mkdir -p "$hd"
+  if [ -e "$project/target" ] && [ ! -L "$project/target" ]; then
+    mv "$project/target" "$hd/target"
+  elif [ ! -e "$project/target" ]; then
+    mkdir -p "$hd/target"
+  fi
+  if [ ! -L "$project/target" ]; then
+    ln -s "$hd/target" "$project/target"
+  fi
+  mkdir -p "$project/.cargo"
+  cat > "$project/.cargo/config.toml" <<EOF
+[build]
+target-dir = "$hd/target"
+EOF
+  echo "rust: $project/target -> $hd/target"
+}
+
+do_node() {
+  mkdir -p "$hd"
+  if [ -e "$project/node_modules" ] && [ ! -L "$project/node_modules" ]; then
+    mv "$project/node_modules" "$hd/node_modules"
+  elif [ ! -e "$project/node_modules" ]; then
+    mkdir -p "$hd/node_modules"
+  fi
+  if [ ! -L "$project/node_modules" ]; then
+    ln -s "$hd/node_modules" "$project/node_modules"
+  fi
+  echo "node: $project/node_modules -> $hd/node_modules"
+}
+
+case "$mode" in
+  rust) do_rust ;;
+  node) do_node ;;
+  auto)
+    [ -f "$project/Cargo.toml" ] && do_rust || true
+    [ -f "$project/package.json" ] && do_node || true
+    ;;
+  *) usage ;;
+esac
