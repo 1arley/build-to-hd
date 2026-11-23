@@ -14,11 +14,18 @@ SSD. Moving them manually is error-prone and hard to track.
 ## Current Bash helper
 
 ```bash
+# Move heavy build dirs to HD (auto-detect)
 build-to-hd <project-dir> [rust|node|auto]
+
+# Remove a project's HD artifacts and symlinks
+build-to-hd remove <project-dir>
 ```
 
 It detects `Cargo.toml` / `package.json`, moves `target/` / `node_modules/` to
 `/mnt/linux-data/<project>/...` and replaces the original with a symlink.
+
+When a project is removed, run `build-to-hd remove <project-dir>` to delete the
+HD directory and the symlinks (and the generated `.cargo/config.toml`).
 
 See `scripts/build-to-hd`.
 

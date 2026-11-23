@@ -21,6 +21,7 @@ the reference behavior until the Rust version reaches parity.
 - [x] Per-project directories on HD
 - [x] Idempotent runs
 - [x] `auto` detection via manifests
+- [x] `remove` command: delete HD dir + symlinks + generated config
 
 ### Phase 1 — Rust skeleton
 

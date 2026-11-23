@@ -1,13 +1,56 @@
 #!/usr/bin/env bash
 # Move heavy build dirs of a project to the HD and leave symlinks behind.
-# Usage: build-to-hd <project-dir> [rust|node|auto]
+# Also supports removing a project's HD artifacts and symlinks.
+#
+# Usage:
+#   build-to-hd <project-dir> [rust|node|auto]
+#   build-to-hd remove <project-dir>
 set -euo pipefail
 
 HD=/mnt/linux-data
 [ -d "$HD" ] || { echo "HD not mounted at $HD" >&2; exit 1; }
 
-usage() { echo "Usage: build-to-hd <project-dir> [rust|node|auto]" >&2; exit 1; }
+usage() { echo "Usage: build-to-hd <project-dir> [rust|node|auto] | build-to-hd remove <project-dir>" >&2; exit 1; }
 [ $# -ge 1 ] || usage
+
+remove_project() {
+  project=$(realpath "$1")
+  name=$(basename "$project")
+  hd="$HD/$name"
+  echo "Removing HD artifacts for: $name"
+
+  # Remove symlinks in project if present
+  for d in target node_modules; do
+    if [ -L "$project/$d" ]; then
+      rm -f "$project/$d"
+      echo "  removed symlink: $project/$d"
+    fi
+  done
+
+  # Remove per-project HD directory
+  if [ -d "$hd" ]; then
+    rm -rf "$hd"
+    echo "  removed HD dir: $hd"
+  else
+    echo "  no HD dir: $hd"
+  fi
+
+  # Remove .cargo/config.toml if it was created by this tool (best effort)
+  if [ -f "$project/.cargo/config.toml" ]; then
+    if grep -q "target-dir = \"$hd/target\"" "$project/.cargo/config.toml" 2>/dev/null; then
+      rm -f "$project/.cargo/config.toml"
+      rmdir "$project/.cargo" 2>/dev/null || true
+      echo "  removed .cargo/config.toml"
+    fi
+  fi
+}
+
+# Subcommand: remove
+if [ "$1" = "remove" ] || [ "$1" = "rm" ]; then
+  [ $# -ge 2 ] || usage
+  remove_project "$2"
+  exit 0
+fi
 
 project=$(realpath "$1")
 mode=${2:-auto}
@@ -54,3 +97,6 @@ case "$mode" in
     ;;
   *) usage ;;
 esac
+EOF
+chmod +x /home/iarley/.local/bin/build-to-hd
+echo "updated"
