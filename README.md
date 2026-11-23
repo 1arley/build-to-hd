@@ -17,6 +17,9 @@ SSD. Moving them manually is error-prone and hard to track.
 # Move heavy build dirs to HD (auto-detect)
 build-to-hd <project-dir> [rust|node|auto]
 
+# List projects on HD
+build-to-hd list
+
 # Remove a project's HD artifacts and symlinks
 build-to-hd remove <project-dir>
 ```

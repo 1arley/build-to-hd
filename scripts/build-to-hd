@@ -1,17 +1,49 @@
 #!/usr/bin/env bash
 # Move heavy build dirs of a project to the HD and leave symlinks behind.
-# Also supports removing a project's HD artifacts and symlinks.
+# Also supports removing a project's HD artifacts and symlinks, and listing.
 #
 # Usage:
 #   build-to-hd <project-dir> [rust|node|auto]
 #   build-to-hd remove <project-dir>
+#   build-to-hd list
 set -euo pipefail
 
 HD=/mnt/linux-data
 [ -d "$HD" ] || { echo "HD not mounted at $HD" >&2; exit 1; }
 
-usage() { echo "Usage: build-to-hd <project-dir> [rust|node|auto] | build-to-hd remove <project-dir>" >&2; exit 1; }
+usage() { echo "Usage: build-to-hd <project-dir> [rust|node|auto] | build-to-hd remove <project-dir> | build-to-hd list" >&2; exit 1; }
 [ $# -ge 1 ] || usage
+
+list_projects() {
+  echo "Projects on HD ($HD):"
+  shopt -s nullglob
+  local found=0
+  for hd_dir in "$HD"/*/; do
+    [ -d "$hd_dir" ] || continue
+    # Only show dirs that hold build artifacts
+    [ -d "$hd_dir/target" ] || [ -d "$hd_dir/node_modules" ] || continue
+    found=1
+    name=$(basename "$hd_dir")
+    size=$(du -sh "$hd_dir" 2>/dev/null | cut -f1)
+    src=""
+    for base in /home/iarley/Projects /home/iarley/Work; do
+      if [ -d "$base/$name" ]; then src="$base/$name"; break; fi
+    done
+    if [ -n "$src" ]; then
+      syms=""
+      [ -L "$src/target" ] && syms="target"
+      [ -L "$src/node_modules" ] && syms="${syms:+$syms,}node_modules"
+      [ -z "$syms" ] && syms="none"
+      echo "  $name  size=$size  source=$src  symlinks=[$syms]"
+    else
+      echo "  $name  size=$size  source=MISSING"
+    fi
+  done
+  shopt -u nullglob
+  if [ "$found" -eq 0 ]; then
+    echo "  (none)"
+  fi
+}
 
 remove_project() {
   project=$(realpath "$1")
@@ -19,7 +51,6 @@ remove_project() {
   hd="$HD/$name"
   echo "Removing HD artifacts for: $name"
 
-  # Remove symlinks in project if present
   for d in target node_modules; do
     if [ -L "$project/$d" ]; then
       rm -f "$project/$d"
@@ -27,7 +58,6 @@ remove_project() {
     fi
   done
 
-  # Remove per-project HD directory
   if [ -d "$hd" ]; then
     rm -rf "$hd"
     echo "  removed HD dir: $hd"
@@ -35,7 +65,6 @@ remove_project() {
     echo "  no HD dir: $hd"
   fi
 
-  # Remove .cargo/config.toml if it was created by this tool (best effort)
   if [ -f "$project/.cargo/config.toml" ]; then
     if grep -q "target-dir = \"$hd/target\"" "$project/.cargo/config.toml" 2>/dev/null; then
       rm -f "$project/.cargo/config.toml"
@@ -45,12 +74,18 @@ remove_project() {
   fi
 }
 
-# Subcommand: remove
-if [ "$1" = "remove" ] || [ "$1" = "rm" ]; then
-  [ $# -ge 2 ] || usage
-  remove_project "$2"
-  exit 0
-fi
+# Subcommands
+case "$1" in
+  list|ls|status)
+    list_projects
+    exit 0
+    ;;
+  remove|rm)
+    [ $# -ge 2 ] || usage
+    remove_project "$2"
+    exit 0
+    ;;
+esac
 
 project=$(realpath "$1")
 mode=${2:-auto}
@@ -97,6 +132,3 @@ case "$mode" in
     ;;
   *) usage ;;
 esac
-EOF
-chmod +x /home/iarley/.local/bin/build-to-hd
-echo "updated"

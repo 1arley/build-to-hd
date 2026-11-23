@@ -21,6 +21,14 @@ What happens:
 - Rust: `target/` moved to `/mnt/linux-data/<name>/target`; symlink left in project; `.cargo/config.toml` written.
 - Node: `node_modules/` moved to `/mnt/linux-data/<name>/node_modules`; symlink left in project.
 
+## List projects on HD
+
+```bash
+build-to-hd list
+```
+
+Shows each project on HD, its size, source path and symlinks.
+
 ## Remove a project from HD
 
 ```bash
